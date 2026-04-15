@@ -5,21 +5,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 )
 
 const (
 	RespOk     = "OK"
 	RespError  = "ERROR"
-	RespEnd    = "END"
-	RespEof    = "EOF"
-	RespDrives = "DRIVES"
-
-	CmdListDrives = "LIST_DRIVES"
-	CmdListDir    = "LIST_DIR"
-	CmdGetFile    = "GET_FILE"
-	CmdQuit       = "QUIT"
+	CmdListDir = "LIST_DIR"
+	CmdGetFile = "GET_FILE"
+	CmdQuit    = "QUIT"
 
 	Delimiter = '\n'
 )
@@ -34,29 +28,6 @@ func (m *Message) Encode() string {
 		return m.Command + "\n"
 	}
 	return m.Command + ":" + m.Payload + "\n"
-}
-
-func DecodeMessage(line string) *Message {
-	line = strings.TrimSpace(line)
-	parts := strings.SplitN(line, ":", 2)
-	if len(parts) == 1 {
-		return &Message{Command: parts[0], Payload: parts[1]}
-	}
-	return &Message{Command: parts[0], Payload: parts[1]}
-}
-
-func GetLogicalDrives() []string {
-	if runtime.GOOS == "windows" {
-		var drives []string
-		for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
-			path := string(drive) + ":\\"
-			if _, err := os.Stat(path); err == nil {
-				drives = append(drives, string(drive)+":")
-			}
-		}
-		return drives
-	}
-	return []string{"/"}
 }
 
 func GetDirectoryContent(path string) ([]string, error) {
