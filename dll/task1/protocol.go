@@ -1,4 +1,4 @@
-package protocol_
+package protocol
 
 import (
 	"bufio"
