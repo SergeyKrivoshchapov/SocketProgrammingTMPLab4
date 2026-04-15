@@ -2,31 +2,23 @@ package task1_client
 
 import "C"
 import (
-	"fmt"
-	"unsafe"
+	"SocketProgrammingTMPLab5/dll/common/reply"
 )
-
-/*
-typedef struct {
-	int status;
-	char* msg;
-} Reply;
-*/
 
 //export ConnectToServer
 func ConnectToServer(address *C.char) *C.Reply {
 	clientMu.Lock()
 	defer clientMu.Unlock()
 	if client != nil {
-		return newErrorReply(fmt.Errorf("client already connected"))
+		return reply.NewError("client already connected")
 	}
-	c := &Client{}
+	c := &FileClient{}
 	if err := c.Connect(C.GoString(address)); err != nil {
-		return newErrorReply(err)
+		return reply.NewErrorFromErr(err)
 	}
 
 	client = c
-	return newSuccessReply(c.GetDrives())
+	return reply.NewSuccess(c.GetDrives())
 }
 
 //export Disconnect
@@ -46,15 +38,15 @@ func GetDirectoryContent(path *C.char) *C.Reply {
 	defer clientMu.Unlock()
 
 	if client == nil {
-		return newErrorReply(fmt.Errorf("client not connected"))
+		return reply.NewError("client not connected")
 	}
 
 	content, err := client.GetDirectoryContent(C.GoString(path))
 	if err != nil {
-		return newErrorReply(err)
+		return reply.NewErrorFromErr(err)
 	}
 
-	return newSuccessReply(content)
+	return reply.NewSuccess(content)
 
 }
 
@@ -64,20 +56,17 @@ func GetFileContent(path *C.char) *C.Reply {
 	defer clientMu.Unlock()
 
 	if client == nil {
-		return newErrorReply(fmt.Errorf("client not connected"))
+		return reply.NewError("client not connected")
 	}
 
 	content, err := client.GetFileContent(C.GoString(path))
 	if err != nil {
-		return newErrorReply(err)
+		return reply.NewErrorFromErr(err)
 	}
-	return newSuccessReply(content)
+	return reply.NewSuccess(content)
 }
 
 //export FreeReply
-func FreeReply(reply *C.Reply) {
-	if reply != nil {
-		C.free(unsafe.Pointer(reply.msg))
-		C.free(unsafe.Pointer(reply))
-	}
+func FreeReply(r *C.Reply) {
+	reply.Free(r)
 }
