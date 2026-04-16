@@ -29,7 +29,7 @@ func (c *FileClient) Connect(address string) error {
 		return fmt.Errorf("Error reading drives: %w", err)
 	}
 
-	if !strings.HasPrefix(drivesLine, "DRIVES: ") {
+	if !strings.HasPrefix(drivesLine, "DRIVES:") {
 		return fmt.Errorf("Error, Recieved %s", drivesLine)
 	}
 	c.drives = strings.TrimPrefix(drivesLine, "DRIVES: ")

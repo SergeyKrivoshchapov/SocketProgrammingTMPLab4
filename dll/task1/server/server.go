@@ -51,7 +51,7 @@ func (s *Server) handleClient(conn net.Conn) {
 	writer := bufio.NewWriter(conn)
 
 	drives := getLogicalDrives()
-	writer.WriteString("DRIVES" + strings.Join(drives, ",") + "\n")
+	writer.WriteString("DRIVES:" + strings.Join(drives, ",") + "\n")
 	writer.Flush()
 
 	for {

@@ -1,91 +1,102 @@
 package main
 
+/*
+#cgo LDFLAGS: -L../../bin -ltask1_client
+#include <stdlib.h>
+#include "../../bin/task1_client.h"
+*/
 import "C"
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
-	"unsafe"
+    "bufio"
+    "fmt"
+    "os"
+    "strings"
+    "unsafe"
 )
 
 func main() {
-	address := "localhost:8081"
-	if len(os.Args) > 1 {
-		address = os.Args[1]
-	}
+    address := "localhost:8081"
+    if len(os.Args) > 1 {
+        address = os.Args[1]
+    }
 
-	cAddr := C.CString(address)
-	defer C.free(unsafe.Pointer(cAddr))
-	reply := C.ConnectToServer(cAddr)
-	defer C.FreeReply(reply)
+    cAddr := C.CString(address)
+    defer C.free(unsafe.Pointer(cAddr))
 
-	if reply.status != 0 {
-		fmt.Printf("Connection error %s.\n", C.GoString(reply.msg))
-		return
-	}
+    reply := C.ConnectToServer(cAddr)
+    defer C.FreeReply(reply)
 
-	fmt.Printf("File client connnected to address %s.\n", address)
-	fmt.Printf("Disks: %s\n", C.GoString(reply.msg))
+    if reply.status != 0 {
+        fmt.Printf("Error: %s\n", C.GoString(reply.msg))
+        return
+    }
 
-	console := bufio.NewReader(os.Stdin)
-	printMenu()
+    fmt.Printf("=== File Client ===\n")
+    fmt.Printf("Connected to: %s\n", address)
+    fmt.Printf("Drives: %s\n\n", C.GoString(reply.msg))
 
-	for {
-		fmt.Print("> ")
-		input, _ := console.ReadString('\n')
-		input = strings.TrimSpace(input)
+    console := bufio.NewReader(os.Stdin)
+    printMenu()
 
-		switch input {
-		case "2":
-			fmt.Print("Enter directory path: ")
-			path, _ := console.ReadString('\n')
-			path = strings.TrimSpace(path)
+    for {
+        fmt.Print("> ")
+        input, _ := console.ReadString('\n')
+        input = strings.TrimSpace(input)
 
-			cPath := C.CString(path)
-			reply := C.GetDirectoryContent(cPath)
-			C.free(unsafe.Pointer(cPath))
+        switch input {
+        case "2":
+            fmt.Print("Enter directory path: ")
+            path, _ := console.ReadString('\n')
+            path = strings.TrimSpace(path)
 
-			if reply.status != 0 {
-				fmt.Printf("Error: %s\n", C.GoString(reply.msg))
-			} else {
-				fmt.Printf("Directory content:")
-				fmt.Printf(C.GoString(reply.msg))
-			}
-			C.FreeReply(reply)
+            cPath := C.CString(path)
+            reply := C.GetDirectoryContent(cPath)
+            C.free(unsafe.Pointer(cPath))
 
-		case "3":
-			fmt.Print("Enter file name: ")
-			path, _ := console.ReadString('\n')
-			path = strings.TrimSpace(path)
+            if reply.status != 0 {
+                fmt.Printf("Error: %s\n", C.GoString(reply.msg))
+            } else {
+                fmt.Println("\nDirectory content:")
+                fmt.Println(strings.Repeat("-", 50))
+                fmt.Print(C.GoString(reply.msg))
+                fmt.Println(strings.Repeat("-", 50))
+            }
+            C.FreeReply(reply)
 
-			cPath := C.CString(path)
-			reply := C.GetFileContent(cPath)
-			C.free(unsafe.Pointer(cPath))
+        case "3":
+            fmt.Print("Enter file path: ")
+            path, _ := console.ReadString('\n')
+            path = strings.TrimSpace(path)
 
-			if reply.status != 0 {
-				fmt.Printf("Error: %s\n", C.GoString(reply.msg))
-			} else {
-				fmt.Printf("File content:")
-				fmt.Printf(C.GoString(reply.msg))
-			}
-			C.FreeReply(reply)
+            cPath := C.CString(path)
+            reply := C.GetFileContent(cPath)
+            C.free(unsafe.Pointer(cPath))
 
-		case "4":
-			C.DisconnectFromServer()
-			fmt.Println("Connection disconnected.")
-			return
+            if reply.status != 0 {
+                fmt.Printf("Error: %s\n", C.GoString(reply.msg))
+            } else {
+                fmt.Println("\nFile content:")
+                fmt.Println(strings.Repeat("-", 50))
+                fmt.Print(C.GoString(reply.msg))
+                fmt.Println(strings.Repeat("-", 50))
+            }
+            C.FreeReply(reply)
 
-		default:
-			printMenu()
-		}
-		fmt.Println()
-	}
+        case "4", "quit", "exit":
+            C.DisconnectFromServer()
+            fmt.Println("Disconnecting...")
+            return
+
+        default:
+            printMenu()
+        }
+        fmt.Println()
+    }
 }
 
 func printMenu() {
-	fmt.Println("Menu: ")
-	fmt.Println("2 - directory list")
-	fmt.Println("3 - file")
-	fmt.Println("4 - exit")
+    fmt.Println("Menu:")
+    fmt.Println("  2 - List directory")
+    fmt.Println("  3 - View file")
+    fmt.Println("  4 - Exit")
 }
