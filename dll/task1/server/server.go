@@ -1,4 +1,4 @@
-package task1_server
+package main
 
 import (
 	"bufio"

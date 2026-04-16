@@ -1,4 +1,4 @@
-package task1_server
+package main
 
 import "C"
 
@@ -30,3 +30,5 @@ func StopServer() {
 		server = nil
 	}
 }
+
+func main() {}

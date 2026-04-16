@@ -1,4 +1,4 @@
-package task1_client
+package main
 
 import "C"
 import (
@@ -7,14 +7,6 @@ import (
 	"strings"
 	"sync"
 )
-
-/*
-#include <stdlib.h>
-typedef struct {
-	int status;
-	char* msg;
-} Reply;
-*/
 
 var (
 	client   *FileClient
