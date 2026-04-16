@@ -65,3 +65,5 @@ func GetConnectedUnitCount() C.int {
 func FreeMemory(ptr *C.char) {
 	C.free(unsafe.Pointer(ptr))
 }
+
+func main() {}

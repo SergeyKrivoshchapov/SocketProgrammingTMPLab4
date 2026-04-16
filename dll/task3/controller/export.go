@@ -64,3 +64,5 @@ func IsControllerRunning() C.int {
 	}
 	return 0
 }
+
+func main() {}

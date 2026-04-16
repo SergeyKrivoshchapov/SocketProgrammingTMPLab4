@@ -36,3 +36,5 @@ func StopController() {
 		controller = nil
 	}
 }
+
+func main() {}
