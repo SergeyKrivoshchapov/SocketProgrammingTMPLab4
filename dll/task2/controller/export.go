@@ -1,4 +1,4 @@
-package task2_controller
+package main
 
 import "C"
 import (

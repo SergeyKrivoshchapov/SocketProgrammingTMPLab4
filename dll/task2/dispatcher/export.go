@@ -1,4 +1,4 @@
-package task2_dispatcher
+package main
 
 import "C"
 import "unsafe"
