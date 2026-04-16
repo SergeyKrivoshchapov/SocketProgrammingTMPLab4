@@ -57,7 +57,7 @@ func (d *Dispatcher) StartReceiving() {
 			press, err2 := strconv.ParseFloat(parts[1], 64)
 
 			if err1 == nil && err2 == nil && d.callback != nil {
-				C.invokeCallback(d.callback, C.doubke(temp), C.double(press))
+				C.invokeCallback(d.callback, C.double(temp), C.double(press))
 			}
 		}
 	}

@@ -1,5 +1,16 @@
 package main
 
+/*
+#include <stdlib.h>
+
+typedef void (*StatesCallback)(char* states);
+
+static void invokeCallback(StatesCallback cb, char* states) {
+    if (cb != NULL) {
+        cb(states);
+    }
+}
+*/
 import "C"
 import (
 	"SocketProgrammingTMPLab5/dll/common/tcp"

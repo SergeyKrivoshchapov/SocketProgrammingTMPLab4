@@ -1,5 +1,16 @@
 package main
 
+/*
+#include <stdlib.h>
+
+typedef void (*DataCallback)(double temperature, double pressure);
+
+static void invokeCallback(DataCallback cb, double temp, double press) {
+    if (cb != NULL) {
+        cb(temp, press);
+    }
+}
+*/
 import "C"
 import "unsafe"
 
