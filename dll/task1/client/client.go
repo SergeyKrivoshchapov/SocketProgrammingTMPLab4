@@ -2,10 +2,11 @@ package main
 
 import "C"
 import (
-	"SocketProgrammingTMPLab5/dll/common/tcp"
 	"fmt"
 	"strings"
 	"sync"
+
+	"SocketProgrammingTMPLab5/dll/common/tcp"
 )
 
 var (

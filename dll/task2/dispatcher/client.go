@@ -12,11 +12,13 @@ static void invokeCallback(DataCallback cb, double temp, double press) {
 }
 */
 import "C"
+
 import (
-	"SocketProgrammingTMPLab5/dll/common/tcp"
 	"strconv"
 	"strings"
 	"sync"
+
+	"SocketProgrammingTMPLab5/dll/common/tcp"
 )
 
 var (

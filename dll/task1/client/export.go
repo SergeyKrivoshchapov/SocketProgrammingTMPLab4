@@ -80,7 +80,6 @@ func GetDirectoryContent(path *C.char) *C.Reply {
 	}
 
 	return NewSuccess(content)
-
 }
 
 //export GetFileContent

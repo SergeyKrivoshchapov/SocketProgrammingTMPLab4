@@ -2,15 +2,25 @@ package main
 
 /*
 #include <stdlib.h>
+
+typedef void (*DataCallback)(double temperature, double pressure);
+
+static void invokeCallback(DataCallback cb, double temp, double press) {
+	if (cb != NULL) {
+		cb(temp, press);
+	}
+}
 */
 import "C"
+
 import (
-	"SocketProgrammingTMPLab5/dll/common/tcp"
 	"fmt"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
+
+	"SocketProgrammingTMPLab5/dll/common/tcp"
 )
 
 var (
@@ -19,7 +29,8 @@ var (
 )
 
 type Controller struct {
-	server *tcp.Server
+	server   *tcp.Server
+	callback C.DataCallback
 }
 
 func (c *Controller) Start(port string) error {
@@ -44,6 +55,10 @@ func (c *Controller) handleDispatcher(conn net.Conn) {
 		if _, err := conn.Write([]byte(msg)); err != nil {
 			return
 		}
+
+		if c.callback != nil {
+			C.invokeCallback(c.callback, C.double(temp), C.double(press))
+		}
 	}
 }
 
@@ -51,4 +66,8 @@ func (c *Controller) Stop() {
 	if c.server != nil {
 		c.server.Stop()
 	}
+}
+
+func (c *Controller) SetCallback(cb C.DataCallback) {
+	c.callback = cb
 }

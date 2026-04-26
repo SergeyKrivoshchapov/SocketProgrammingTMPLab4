@@ -1,13 +1,25 @@
 package main
 
+/*
+#include <stdlib.h>
+
+typedef void (*DataCallback)(double temperature, double pressure);
+
+static void invokeCallback(DataCallback cb, double temp, double press) {
+	if (cb != NULL) {
+		cb(temp, press);
+	}
+}
+*/
 import "C"
+
 import (
 	"math/rand"
 	"time"
 )
 
 //export StartController
-func StartController(port *C.char) C.int {
+func StartController(port *C.char, callback C.DataCallback) C.int {
 	controllerMu.Lock()
 	defer controllerMu.Unlock()
 
@@ -18,6 +30,7 @@ func StartController(port *C.char) C.int {
 	rand.Seed(time.Now().UnixNano())
 
 	c := &Controller{}
+	c.SetCallback(callback)
 	if err := c.Start(C.GoString(port)); err != nil {
 		return -1
 	}

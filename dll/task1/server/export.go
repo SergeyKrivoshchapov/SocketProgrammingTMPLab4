@@ -1,9 +1,22 @@
 package main
 
+/*
+#include <stdlib.h>
+
+typedef void (*DataCallback)(char* msg);
+
+static void invokeCallback(DataCallback cb, char* msg) {
+		if (cb != NULL) {
+			cb(msg);
+		}
+}
+*/
 import "C"
 
+// ServerStart starts the server with a callback for log messages
+//
 //export StartServer
-func StartServer(port *C.char) C.int {
+func StartServer(port *C.char, callback C.DataCallback) C.int {
 	serverMu.Lock()
 	defer serverMu.Unlock()
 
@@ -12,6 +25,7 @@ func StartServer(port *C.char) C.int {
 	}
 
 	s := &Server{}
+	s.SetCallback(callback)
 	if err := s.Start(C.GoString(port)); err != nil {
 		return -1
 	}
