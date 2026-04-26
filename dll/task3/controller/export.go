@@ -1,16 +1,25 @@
 package main
 
 /*
-   #include <stdlib.h>
+#include <stdlib.h>
+
+typedef void (*DataCallback)(char* states);
+
+static void InvokeCallback(DataCallback cb, char* states){
+	if (cb != NULL) {
+		cb(states);
+	}
+}
 */
 import "C"
+
 import (
 	"math/rand"
 	"time"
 )
 
 //export StartController
-func StartController(port *C.char, configPath *C.char) C.int {
+func StartController(port *C.char, configPath *C.char, callback C.DataCallback) C.int {
 	controllerMu.Lock()
 	defer controllerMu.Unlock()
 
@@ -23,6 +32,8 @@ func StartController(port *C.char, configPath *C.char) C.int {
 	c := &UnitController{
 		configPath: C.GoString(configPath),
 	}
+
+	c.SetCallback(callback)
 
 	if err := c.Start(C.GoString(port)); err != nil {
 		return -1

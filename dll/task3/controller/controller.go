@@ -1,8 +1,19 @@
 package main
 
+/*
+#include <stdlib.h>
+
+typedef void (*DataCallback)(char* states);
+
+static void InvokeCallback(DataCallback cb, char* states) {
+    if (cb != NULL) {
+        cb(states);
+    }
+}
+*/
 import "C"
+
 import (
-	"SocketProgrammingTMPLab5/dll/common/tcp"
 	"bufio"
 	"fmt"
 	"math/rand"
@@ -12,6 +23,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
+
+	"SocketProgrammingTMPLab5/dll/common/tcp"
 )
 
 var (
@@ -23,6 +37,7 @@ type UnitController struct {
 	server     *tcp.Server
 	unitCount  int
 	configPath string
+	callback   C.DataCallback
 }
 
 func (c *UnitController) Start(port string) error {
@@ -85,6 +100,7 @@ func (c *UnitController) handleDispatcher(conn net.Conn) {
 			if !c.sendStates(writer, states) {
 				return
 			}
+			c.sendStatesToCallback(states)
 			c.updateStates(states)
 		}
 	}
@@ -102,6 +118,22 @@ func (c *UnitController) sendStates(writer *bufio.Writer, states []int) bool {
 		return false
 	}
 	return writer.Flush() == nil
+}
+
+func (c *UnitController) sendStatesToCallback(states []int) {
+	if c.callback == nil {
+		return
+	}
+
+	strStates := make([]string, len(states))
+	for i, s := range states {
+		strStates[i] = strconv.Itoa(s)
+	}
+
+	msg := strings.Join(strStates, ";")
+	cMsg := C.CString(msg)
+	C.InvokeCallback(c.callback, cMsg)
+	C.free(unsafe.Pointer(cMsg))
 }
 
 func (c *UnitController) updateStates(states []int) {
@@ -129,4 +161,8 @@ func (c *UnitController) Stop() {
 
 func (c *UnitController) GetUnitCount() int {
 	return c.unitCount
+}
+
+func (c *UnitController) SetCallback(cb C.DataCallback) {
+	c.callback = cb
 }
