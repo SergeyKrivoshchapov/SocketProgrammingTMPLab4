@@ -1,0 +1,69 @@
+﻿<Window x:Class="Task2Client.Views.MainWindow"
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:scottPlot="clr-namespace:ScottPlot;assembly=ScottPlot.WPF"
+        mc:Ignorable="d"
+        Title="Пульт диспетчера" Height="700" Width="1100">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0" Text="Адрес контроллера:"/>
+            <TextBox Grid.Column="1"
+                     VerticalContentAlignment="Center"
+                     Text="{Binding ControllerAddress, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Button Grid.Column="2" Margin="10,0,0,0" Padding="12,4" Content="Подключиться" Command="{Binding ConnectCommand}"/>
+            <Button Grid.Column="3" Margin="10,0,0,0" Padding="12,4" Content="Отключиться" Command="{Binding DisconnectCommand}"/>
+            <Button Grid.Column="4" Margin="10,0,0,0" Padding="12,4" Content="Очистить" Command="{Binding ClearCommand}"/>
+            <Button Grid.Column="5" Margin="10,0,0,0" Padding="12,4" Content="Выход" Command="{Binding ExitCommand}"/>
+
+            <TextBlock Grid.Column="6"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       Text="{Binding Status}"/>
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="10,0,10,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0" Header="Температура от времени" Margin="0,0,0,8">
+                <scottPlot:WpfPlot x:Name="TemperaturePlot"/>
+            </GroupBox>
+
+            <GroupBox Grid.Row="1" Header="Давление от времени">
+                <scottPlot:WpfPlot x:Name="PressurePlot"/>
+            </GroupBox>
+        </Grid>
+
+        <GroupBox Grid.Row="2" Header="Журнал" Margin="10,0,10,10">
+            <TextBox Text="{Binding Log, Mode=OneWay}"
+                     IsReadOnly="True"
+                     Margin="5"
+                     Height="120"
+                     AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto"
+                     TextWrapping="Wrap"/>
+        </GroupBox>
+    </Grid>
+</Window>
