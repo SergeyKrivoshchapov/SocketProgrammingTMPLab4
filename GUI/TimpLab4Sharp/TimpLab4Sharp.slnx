@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="MVVMClassLibrary/MVVMClassLibrary.csproj" Id="3843b15a-9ee2-47e4-86ea-adfdc46742a9" />
+  <Project Path="Task1GUI/Task1GUI.csproj" />
+  <Project Path="Task2Client/Task2Client.csproj" Id="afeacb6c-cfd1-4c4a-940b-960d92c3f924" />
+  <Project Path="Task2Controller/Task2Controller.csproj" Id="ae11414a-91a7-4b31-89ed-5f8bfa1e8f6e" />
+  <Project Path="Task3Client/Task3Client.csproj" Id="fbb7a0bb-b7c5-4abe-8d64-1571abe5f8ad" />
+  <Project Path="Task3Controller/Task3Controller.csproj" Id="13d2ebca-3394-4766-affd-7d34a41eda85" />
+</Solution>

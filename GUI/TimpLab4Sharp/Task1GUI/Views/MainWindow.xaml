@@ -1,0 +1,121 @@
+﻿<Window x:Class="Task1GUI.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Task1GUI.Views"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0" Header="Выбор диска">
+                <ComboBox ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}"/>
+            </GroupBox>
+
+            <ScrollViewer Grid.Row="1">
+                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" />
+            </ScrollViewer>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="IP-адрес"/>
+                <TextBox Grid.Column="1"
+                         x:Name="IpAddressTextBox"
+                         VerticalContentAlignment="Center"
+                         Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"
+                         TextChanged="IpAddressTextBox_OnTextChanged"
+                         PreviewTextInput="IpAddressTextBox_OnPreviewTextInput"
+                         PreviewKeyDown="IpAddressTextBox_OnPreviewKeyDown"/>
+                <Button Grid.Column="2" Command="{Binding ToggleServerCommand}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Content" Value="Сервер включить"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsServerRunning}" Value="True">
+                                    <Setter Property="Content" Value="Сервер отключить"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="Соединиться" Command="{Binding ConnectCommand}"/>
+                <Button Grid.Column="1" Content="Отключиться" Command="{Binding DisconnectCommand}"/>
+                <Button Grid.Column="2" Content="Выход" Command="{Binding ExitCommand}"/>
+            </Grid>
+
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="Передать серверу" Command="{Binding SendToServerCommand}"/>
+                <Button Grid.Column="1" Content="Передать клиенту" Command="{Binding SendToClientCommand}"/>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Клиентская сторона"/>
+            <GroupBox Grid.Row="1">
+                <TextBox Text="{Binding ClientLog}"
+                         Margin="5"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         TextWrapping="Wrap"/>
+            </GroupBox>
+        </Grid>
+
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Серверная сторона"/>
+
+            <GroupBox Grid.Row="1">
+                <TextBox Text="{Binding ServerLog}"
+                         Margin="5"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         TextWrapping="Wrap"/>
+            </GroupBox>
+
+        </Grid>
+    </Grid>
+</Window>
