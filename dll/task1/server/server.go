@@ -78,7 +78,7 @@ func (s *Server) acceptLoop() {
 		}
 
 		remoteAddr := conn.RemoteAddr().String()
-		s.log(fmt.Sprintf("Клиент соединился с адреса %s", remoteAddr))
+		s.log("Клиент соединился с адреса %s", remoteAddr)
 		go s.handleClient(conn)
 	}
 }
@@ -160,20 +160,9 @@ func handleGetFile(writer *bufio.Writer, path string, s *Server, clientAddr stri
 
 	writer.WriteString("OK\n")
 	writer.Write(data)
-	writer.WriteString("\nEOF\n")
+	writer.WriteString("\nEND\n")
 	writer.Flush()
-	s.log(fmt.Sprintf("Файл %s отправлен клиенту", path, clientAddr))
-}
-
-func getLogicalDrives() []string {
-	var drives []string
-	for _, d := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
-		path := string(d) + ":\\"
-		if _, err := os.Stat(path); err == nil {
-			drives = append(drives, string(d)+":")
-		}
-	}
-	return drives
+	s.log("Файл %s отправлен клиенту %s", path, clientAddr)
 }
 
 func (s *Server) Stop() {

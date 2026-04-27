@@ -52,7 +52,7 @@ func (c *FileClient) GetDirectoryContent(path string) (string, error) {
 	}
 
 	if strings.HasPrefix(status, "ERROR:") {
-		return "", fmt.Errorf(strings.TrimPrefix(status, "ERROR:"))
+		return "", fmt.Errorf("%s", strings.TrimPrefix(status, "ERROR:"))
 	}
 
 	return c.tcpClient.ReceiveUntil("END")
@@ -69,7 +69,7 @@ func (c *FileClient) GetFileContent(path string) (string, error) {
 	}
 
 	if strings.HasPrefix(status, "ERROR:") {
-		return "", fmt.Errorf(strings.TrimPrefix(status, "ERROR:"))
+		return "", fmt.Errorf("%s", strings.TrimPrefix(status, "ERROR:"))
 	}
 
 	return c.tcpClient.ReceiveUntil("END")

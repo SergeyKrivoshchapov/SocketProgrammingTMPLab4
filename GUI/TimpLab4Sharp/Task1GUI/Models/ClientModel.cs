@@ -14,8 +14,6 @@ namespace Task1GUI.Models
         (bool, List<string>) ConnectToServer(string IpAddress);
 
         bool DisconnectToServer();
-
-        bool TransferToServer(string path);
     }
     
     //public class ClientMockModel : IClientTransferModel
@@ -60,6 +58,8 @@ namespace Task1GUI.Models
             IntPtr replyPtr = Connect(IpAddress + ":9000");
             if (replyPtr == IntPtr.Zero)
             {
+                UpdateLogs?.Invoke(this, "Ошибка подключения");
+
                 return (false, []);
             }
 
@@ -68,6 +68,12 @@ namespace Task1GUI.Models
                 Reply reply = Marshal.PtrToStructure<Reply>(replyPtr);
 
                 bool status = reply.status == 0;
+
+                if (!status)
+                {
+                    throw new Exception("Ошибка подключения: не удалось установить соединение с сервером.");
+                }
+
                 string raw = Marshal.PtrToStringUTF8(reply.msg) ?? string.Empty;
                 string drives = raw.StartsWith("DRIVES:") ? raw.Substring("DRIVES:".Length) : raw;
                 List<string> drivesList = string.IsNullOrWhiteSpace(drives)
@@ -79,22 +85,22 @@ namespace Task1GUI.Models
 
                 return (status, drivesList);
             }
+            catch (Exception e) { }
             finally
             {
                 FreeReply(replyPtr);
             }
+
+            UpdateLogs?.Invoke(this, "Ошибка подключения");
+
+            return (false, []);
         }
 
         public bool DisconnectToServer()
         {
             Disconnect();
 
-            return true;
-        }
-
-        public bool TransferToServer(string path)
-        {
-            UpdateLogs?.Invoke(this, "Отправлены данные серверу");
+            UpdateLogs?.Invoke(this, "Отключение от сервера");
 
             return true;
         }

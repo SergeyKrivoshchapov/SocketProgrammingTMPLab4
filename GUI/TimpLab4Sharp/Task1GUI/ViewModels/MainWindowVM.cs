@@ -22,7 +22,7 @@ namespace Task1GUI.ViewModels
         // Выбранный диск
         string SelectedDrive { get; set; }
         // Выбранный элемент (каталог или файл)
-        string SelectedItem { get; set;  }
+        string? SelectedItem { get; set;  }
         // Ip-адрес для подключения со стороны клиента
         string IpAddress { get; set; }
         // Вывод сервера
@@ -50,7 +50,7 @@ namespace Task1GUI.ViewModels
 
     public class MainWindowVM : BaseViewModel, IMainWindowVM
     {
-        private string _selectedDrive;
+        private string _selectedDrive = string.Empty;
         private string? _selectedItem = null;
         private string _ipAddress = string.Empty;
         private string _serverLog = string.Empty;
@@ -174,6 +174,7 @@ namespace Task1GUI.ViewModels
             _sendToClientCommand = new RelayCommand(SendToClient, CanSendToClient);
 
             Drives = new ObservableCollection<string>();
+            Items = new ObservableCollection<string>();
 
             _serverTransferModel.UpdateLogs += UpdateServerLog;
             _clientTransferModel.UpdateLogs += UpdateClientLog;
@@ -198,7 +199,7 @@ namespace Task1GUI.ViewModels
 
         private bool CanSendToClient(object? _)
         {
-            return IsServerRunning;
+            return IsServerRunning && IsClientConnected;
         }
 
         private void ToggleServer(object? sender)
@@ -238,7 +239,7 @@ namespace Task1GUI.ViewModels
 
         private string GetTransferIpAddress()
         {
-            return (IpAddress ?? string.Empty).Replace("_", string.Empty).Trim();
+            return IpAddress.Replace("_", string.Empty).Trim();
         }
 
         private void ClientDisconnect(object? sender)
@@ -256,17 +257,34 @@ namespace Task1GUI.ViewModels
 
         private void SendToServer(object? sender)
         {
-            if (IsClientConnected && SelectedItem != null)
+            if (!IsClientConnected || _diskDriver == null || string.IsNullOrEmpty(SelectedItem))
             {
-                _clientTransferModel.TransferToServer(SelectedItem);
+                return;
+            }
+
+            var selectedPath = CombineWindowsPath(GetSelectedDriveRoot(), SelectedItem.Substring(2));
+
+            if (SelectedItem[0] == 'D')
+            {
+                UpdateClientLog(this, string.Join("\n", _diskDriver.GetDirectoryContent(selectedPath)));
+            }
+            else if (SelectedItem[0] == 'F')
+            {
+                UpdateClientLog(this, _diskDriver.GetFileContent(selectedPath));
             }
         }
 
         private void SendToClient(object? sender)
         {
-            if (IsServerRunning)
+            if (!IsServerRunning || !IsClientConnected)
             {
-                _serverTransferModel.TransferToClient();
+                return;
+            }
+
+            var (status, drives) = _serverTransferModel.TransferToClient();
+            if (status)
+            {
+                UpdateClientLog(this, $"Получен список логических устройств от сервера: {drives}");
             }
         }
 
@@ -283,7 +301,7 @@ namespace Task1GUI.ViewModels
                 }
                 else
                 {
-                    Items = new ObservableCollection<string>(_diskDriver.GetDirectoryContent(SelectedDrive));
+                    Items = new ObservableCollection<string>(_diskDriver.GetDirectoryContent(GetSelectedDriveRoot()));
                 }
 
                 SelectedItem = null;
@@ -312,6 +330,22 @@ namespace Task1GUI.ViewModels
         private void UpdateClientLog(object? sender, string log)
         {
             ClientLog += log + "\n";
+        }
+
+        private string GetSelectedDriveRoot()
+        {
+            if (string.IsNullOrWhiteSpace(SelectedDrive))
+            {
+                return string.Empty;
+            }
+
+            return SelectedDrive.EndsWith("\\") ? SelectedDrive : SelectedDrive + "\\";
+        }
+
+        private static string CombineWindowsPath(string basePath, string childName)
+        {
+            var normalizedBase = basePath.TrimEnd('\\');
+            return normalizedBase + "\\" + childName;
         }
     }
 }

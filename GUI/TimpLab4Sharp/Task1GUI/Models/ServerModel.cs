@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using Task1GUI.Common;
@@ -14,7 +16,7 @@ namespace Task1GUI.Models
 
         bool StopServer();
 
-        bool TransferToClient();
+        (bool status, string drives) TransferToClient();
     }
 
     //public class ServerMockModel : IServerTransferModel
@@ -45,7 +47,7 @@ namespace Task1GUI.Models
 
     public class ServerModel : IServerTransferModel
     {
-        public event EventHandler<string> UpdateLogs;
+        public event EventHandler<string>? UpdateLogs;
 
         // C: typedef void (*DataCallback)(char* msg);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -58,7 +60,7 @@ namespace Task1GUI.Models
         private static extern void StopServ();
 
         // держим, чтобы GC не собрал делегат
-        private DataCallback _callbackRef;
+        private DataCallback? _callbackRef;
         private IntPtr _callbackPtr = IntPtr.Zero;
         private bool _started;
 
@@ -67,17 +69,15 @@ namespace Task1GUI.Models
             if (_started) return true;
 
             _callbackRef = OnNativeLog;
-            _callbackPtr = Marshal.GetFunctionPointerForDelegate(_callbackRef);
+            _callbackPtr = Marshal.GetFunctionPointerForDelegate(_callbackRef!);
 
             var rc = StartServ("9000", _callbackPtr);
             if (rc != 0)
             {
-                UpdateLogs?.Invoke(this, "Ошибка запуска сервера");
                 return false;
             }
 
             _started = true;
-            UpdateLogs?.Invoke(this, "Сервер запущен");
             return true;
         }
 
@@ -91,14 +91,25 @@ namespace Task1GUI.Models
             _callbackPtr = IntPtr.Zero;
             _callbackRef = null;
 
-            UpdateLogs?.Invoke(this, "Сервер остановлен");
             return true;
         }
 
-        public bool TransferToClient()
+        public (bool status, string drives) TransferToClient()
         {
-            UpdateLogs?.Invoke(this, "Отправлен список логических устройств");
-            return true;
+            if (!_started)
+            {
+                return (false, string.Empty);
+            }
+
+            var drives = string.Join(",", DriveInfo.GetDrives()
+                .Select(d => d.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name.EndsWith("\\") ? name.Substring(0, name.Length - 1) : name));
+
+            UpdateLogs?.Invoke(this, $"Отправлен список логических устройств клиенту: {drives}");
+
+            return (true, drives);
+
         }
 
         private void OnNativeLog(IntPtr msgPtr)
