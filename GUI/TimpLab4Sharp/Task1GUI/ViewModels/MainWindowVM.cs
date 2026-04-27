@@ -9,6 +9,7 @@ using Task1GUI.Models;
 using MVVMClassLibrary.Services;
 using MVVMClassLibrary.Commands;
 using MVVMClassLibrary.ViewModels;
+using Task1GUI.Services;
 
 namespace Task1GUI.ViewModels
 {
@@ -64,7 +65,11 @@ namespace Task1GUI.ViewModels
         private readonly RelayCommand _sendToServerCommand;
         private readonly RelayCommand _sendToClientCommand;
 
-        public ObservableCollection<string> Drives { get; }
+        public ObservableCollection<string> Drives { get; private set
+            {
+                field = value;
+                OnPropertyChanged();
+            } }
         public ObservableCollection<string> Items { get; private set {
                 field = value;
                 OnPropertyChanged();
@@ -73,16 +78,9 @@ namespace Task1GUI.ViewModels
             get => _selectedDrive;
             set
             {
-                if (_diskDriver.IsDiskReady(value))
+                if (Set(ref _selectedDrive, value))
                 {
-                    if (Set(ref _selectedDrive, value))
-                    {
-                        LoadItems();
-                    }
-                }
-                else
-                {
-                    _dialogService.ShowMessageBox($"Диск {value} не готов к использованию");
+                    LoadItems();
                 }
             }
         }
@@ -154,15 +152,17 @@ namespace Task1GUI.ViewModels
         public ICommand SendToClientCommand => _sendToClientCommand;
 
         private readonly IDialogService _dialogService;
-        private readonly IDiskDriver _diskDriver;
+        private readonly IDiskDriverService _diskDriverService;
         private readonly IClientTransferModel _clientTransferModel;
         private readonly IServerTransferModel _serverTransferModel;
 
-        public MainWindowVM(IDialogService dialogService, IDiskDriver diskDriver, 
+        private IDiskDriver? _diskDriver = null;
+
+        public MainWindowVM(IDialogService dialogService, IDiskDriverService diskDriverService, 
             IClientTransferModel clientTransferModel, IServerTransferModel serverTransferModel)
         {
             _dialogService = dialogService;
-            _diskDriver = diskDriver;
+            _diskDriverService = diskDriverService;
             _clientTransferModel = clientTransferModel;
             _serverTransferModel = serverTransferModel;
 
@@ -173,7 +173,7 @@ namespace Task1GUI.ViewModels
             _sendToServerCommand = new RelayCommand(SendToServer, CanSendToServer);
             _sendToClientCommand = new RelayCommand(SendToClient, CanSendToClient);
 
-            Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
+            Drives = new ObservableCollection<string>();
 
             _serverTransferModel.UpdateLogs += UpdateServerLog;
             _clientTransferModel.UpdateLogs += UpdateClientLog;
@@ -222,9 +222,17 @@ namespace Task1GUI.ViewModels
         private void ClientConnect(object? sender)
         {
             var transferIp = GetTransferIpAddress();
-            if (_clientTransferModel.ConnectToServer(transferIp))
+
+            bool status;
+            List<string> disks;
+
+            (status, disks) = _clientTransferModel.ConnectToServer(transferIp);
+
+            if (status)
             {
                 IsClientConnected = true;
+                _diskDriver = _diskDriverService.GetDiskDriver(disks);
+                Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
             }
         }
 
@@ -268,7 +276,15 @@ namespace Task1GUI.ViewModels
 
             try
             {
-                Items = new ObservableCollection<string>(_diskDriver.GetDiskContent(SelectedDrive));
+                if (_diskDriver == null)
+                {
+                    Items = new ObservableCollection<string>();
+                    return;
+                }
+                else
+                {
+                    Items = new ObservableCollection<string>(_diskDriver.GetDirectoryContent(SelectedDrive));
+                }
 
                 SelectedItem = null;
             }

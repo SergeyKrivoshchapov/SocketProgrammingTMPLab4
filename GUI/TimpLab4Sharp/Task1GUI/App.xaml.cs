@@ -5,6 +5,7 @@ using Task1GUI.Models;
 using Task1GUI.ViewModels;
 using Task1GUI.Views;
 using MVVMClassLibrary.Services;
+using Task1GUI.Services;
 
 namespace Task1GUI
 {
@@ -17,11 +18,12 @@ namespace Task1GUI
         {
             IDialogService dialogService = new DialogService();
 
-            IDiskDriver diskDriver = new DiskDriver();
-            IClientTransferModel transferModel = new ClientMockModel();
-            IServerTransferModel serverTransferModel = new ServerMockModel();
+            IDiskDriverService diskDriverService = new DiskDriverService(disks => new DiskDriver(disks));
 
-            IMainWindowVM vm = new MainWindowVM(dialogService, diskDriver, transferModel, serverTransferModel);
+            IClientTransferModel transferModel = new ClientModel();
+            IServerTransferModel serverTransferModel = new ServerModel();
+
+            IMainWindowVM vm = new MainWindowVM(dialogService, diskDriverService, transferModel, serverTransferModel);
             MainWindow mainWindow = new MainWindow(vm);
 
             dialogService.RegisterWindow(vm, mainWindow);
