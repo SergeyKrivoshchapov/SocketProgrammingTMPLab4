@@ -17,7 +17,7 @@ namespace Task2Client
         {
             IDialogService dialogService = new DialogService();
 
-            IDispatcherModel dispatcherModel = new DispatcherMockModel();
+            IDispatcherModel dispatcherModel = new DispatcherModel();
 
             IMainWindowVM vm = new MainWindowVM(dispatcherModel, dialogService);
             MainWindow mainWindow = new MainWindow(vm);
