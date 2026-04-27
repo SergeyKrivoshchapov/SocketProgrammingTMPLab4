@@ -17,7 +17,7 @@ namespace Task3Client
         {
             IDialogService dialogService = new DialogService();
 
-            IUnitDispatcherModel unitDispatcherModel = new UnitDispatcherMockModel();
+            IUnitDispatcherModel unitDispatcherModel = new UnitDispatcherModel();
 
             IMainWindowVM vm = new MainWindowVM(dialogService, unitDispatcherModel);
             MainWindow mainWindow = new MainWindow(vm);

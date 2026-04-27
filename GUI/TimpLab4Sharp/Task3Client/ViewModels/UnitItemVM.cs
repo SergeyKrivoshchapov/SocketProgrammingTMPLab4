@@ -1,8 +1,8 @@
 ﻿using MVVMClassLibrary.ViewModels;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Text;
+using System.Windows.Media;
 
 namespace Task3Client.ViewModels
 {
