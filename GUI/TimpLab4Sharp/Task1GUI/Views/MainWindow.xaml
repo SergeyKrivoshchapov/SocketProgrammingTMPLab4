@@ -23,11 +23,20 @@
             </Grid.RowDefinitions>
 
             <GroupBox Grid.Row="0" Header="Выбор диска">
-                <ComboBox ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Grid.Column="0" ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}"/>
+                    <Button Grid.Column="1" Content="..." Command="{Binding NavigateBackCommand}" Padding="8,0" Margin="5,0,0,0"/>
+                </Grid>
             </GroupBox>
 
             <ScrollViewer Grid.Row="1">
-                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" />
+                <ListBox ItemsSource="{Binding Items}" 
+                         SelectedItem="{Binding SelectedItem}"
+                         MouseDoubleClick="ListBox_OnMouseDoubleClick" />
             </ScrollViewer>
 
             <Grid Grid.Row="2">

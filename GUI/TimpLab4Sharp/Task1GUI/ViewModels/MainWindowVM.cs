@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Windows.Input;
@@ -46,6 +47,14 @@ namespace Task1GUI.ViewModels
         ICommand SendToServerCommand { get; }
         // Команда для отправки списка логических устройств на клиент
         ICommand SendToClientCommand { get; }
+        // Команда для навигации назад
+        ICommand NavigateBackCommand { get; }
+
+        // Обработка двойного клика на элементе
+        void ItemDoubleClick(string? formattedItemName);
+
+        // Навигация в родительскую папку
+        void NavigateBack();
     }
 
     public class MainWindowVM : BaseViewModel, IMainWindowVM
@@ -64,6 +73,7 @@ namespace Task1GUI.ViewModels
         private readonly RelayCommand _exitCommand;
         private readonly RelayCommand _sendToServerCommand;
         private readonly RelayCommand _sendToClientCommand;
+        private readonly RelayCommand _navigateBackCommand;
 
         public ObservableCollection<string> Drives { get; private set
             {
@@ -150,6 +160,7 @@ namespace Task1GUI.ViewModels
         public ICommand ExitCommand => _exitCommand;
         public ICommand SendToServerCommand => _sendToServerCommand;
         public ICommand SendToClientCommand => _sendToClientCommand;
+        public ICommand NavigateBackCommand => _navigateBackCommand;
 
         private readonly IDialogService _dialogService;
         private readonly IDiskDriverService _diskDriverService;
@@ -172,6 +183,7 @@ namespace Task1GUI.ViewModels
             _exitCommand = new RelayCommand(Exit);
             _sendToServerCommand = new RelayCommand(SendToServer, CanSendToServer);
             _sendToClientCommand = new RelayCommand(SendToClient, CanSendToClient);
+            _navigateBackCommand = new RelayCommand(_ => NavigateBack(), CanNavigateBack);
 
             Drives = new ObservableCollection<string>();
             Items = new ObservableCollection<string>();
@@ -200,6 +212,11 @@ namespace Task1GUI.ViewModels
         private bool CanSendToClient(object? _)
         {
             return IsServerRunning && IsClientConnected;
+        }
+
+        private bool CanNavigateBack(object? _)
+        {
+            return IsClientConnected && _diskDriver != null && _diskDriver.CanNavigateBack();
         }
 
         private void ToggleServer(object? sender)
@@ -234,6 +251,7 @@ namespace Task1GUI.ViewModels
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
                 Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
+                Items = new ObservableCollection<string>();
             }
         }
 
@@ -247,6 +265,13 @@ namespace Task1GUI.ViewModels
             if (_clientTransferModel.DisconnectToServer())
             {
                 IsClientConnected = false;
+                Items.Clear();
+                SelectedItem = null;
+                Drives.Clear();
+                if (_diskDriver != null)
+                {
+                    _diskDriver.ClearNavigation();
+                }
             }
         }
 
@@ -295,10 +320,15 @@ namespace Task1GUI.ViewModels
                     Items = new ObservableCollection<string>();
                     return;
                 }
-                else
-                {
-                    Items = new ObservableCollection<string>(_diskDriver.GetDirectoryContent(GetSelectedDriveRoot()));
-                }
+
+                // Инициализируем навигацию для выбранного диска
+                var driveRoot = GetSelectedDriveRoot();
+                _diskDriver.SetCurrentDrive(driveRoot);
+
+                // Получаем содержимое с отформатированными именами (без префиксов)
+                var rawContent = _diskDriver.GetDirectoryContent(driveRoot);
+                var formattedItems = rawContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
+                Items = new ObservableCollection<string>(formattedItems);
 
                 SelectedItem = null;
             }
@@ -316,6 +346,7 @@ namespace Task1GUI.ViewModels
             _exitCommand.RaiseCanExecuteChanged();
             _sendToServerCommand.RaiseCanExecuteChanged();
             _sendToClientCommand.RaiseCanExecuteChanged();
+            _navigateBackCommand.RaiseCanExecuteChanged();
         }
 
         private void UpdateServerLog(object? sender, string log)
@@ -342,6 +373,99 @@ namespace Task1GUI.ViewModels
         {
             var normalizedBase = basePath.TrimEnd('\\');
             return normalizedBase + "\\" + childName;
+        }
+
+        /// <summary>
+        /// Обработка двойного клика на элементе
+        /// </summary>
+        public void ItemDoubleClick(string? formattedItemName)
+        {
+            if (!IsClientConnected || _diskDriver == null || string.IsNullOrEmpty(formattedItemName))
+            {
+                return;
+            }
+
+            try
+            {
+                // Получаем исходное содержимое с префиксами для определения типа
+                var currentPath = _diskDriver.GetCurrentPath();
+                var rawContent = _diskDriver.GetDirectoryContent(currentPath);
+                var rawItem = rawContent.FirstOrDefault(item => _diskDriver.GetFormattedItemName(item) == formattedItemName);
+
+                if (string.IsNullOrEmpty(rawItem))
+                {
+                    return;
+                }
+
+                // Проверяем, является ли это папкой
+                if (rawItem[0] == 'D')
+                {
+                    // Это папка - переходим в неё
+                    if (_diskDriver.NavigateToFolder(formattedItemName))
+                    {
+                        // Загружаем содержимое новой папки
+                        try
+                        {
+                            var newPath = _diskDriver.GetCurrentPath();
+                            var newContent = _diskDriver.GetDirectoryContent(newPath);
+                            var formattedContent = newContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
+                            Items = new ObservableCollection<string>(formattedContent);
+                            SelectedItem = null;
+                        }
+                        catch (Exception ex)
+                        {
+                            _dialogService.ShowMessageBox($"Ошибка при загрузке содержимого папки: {ex.Message}");
+                            // Возвращаемся назад, если не смогли загрузить содержимое
+                            _diskDriver.NavigateBack();
+                        }
+                    }
+                    else
+                    {
+                        _dialogService.ShowMessageBox("Не удалось открыть папку");
+                    }
+                }
+                else if (rawItem[0] == 'F')
+                {
+                    // Это файл - отправляем запрос на сервер
+                    var filePath = CombineWindowsPath(currentPath, formattedItemName);
+                    var fileContent = _diskDriver.GetFileContent(filePath);
+
+                    if (!string.IsNullOrEmpty(fileContent))
+                    {
+                        ClientLog += $"Получен файл: {formattedItemName}\n";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowMessageBox($"Ошибка при обработке элемента: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Вернуться в родительскую папку
+        /// </summary>
+        public void NavigateBack()
+        {
+            if (!IsClientConnected || _diskDriver == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (_diskDriver.NavigateBack())
+                {
+                    var content = _diskDriver.GetDirectoryContent(_diskDriver.GetCurrentPath());
+                    var formattedContent = content.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
+                    Items = new ObservableCollection<string>(formattedContent);
+                    SelectedItem = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowMessageBox($"Ошибка при навигации: {ex.Message}");
+            }
         }
     }
 }

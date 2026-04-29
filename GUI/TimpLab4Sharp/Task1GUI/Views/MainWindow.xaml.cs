@@ -205,5 +205,21 @@ namespace Task1GUI.Views
 
             return new string(chars);
         }
+
+        private void ListBox_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not ListBox listBox)
+            {
+                return;
+            }
+
+            var selectedItem = listBox.SelectedItem as string;
+            if (string.IsNullOrEmpty(selectedItem))
+            {
+                return;
+            }
+
+            _viewModel?.ItemDoubleClick(selectedItem);
+        }
     }
 }

@@ -16,6 +16,51 @@ namespace Task1GUI.Models
         List<string> GetDirectoryContent(string path);
 
         string GetFileContent(string path);
+
+        /// <summary>
+        /// Получить содержимое текущей директории с отформатированными элементами (без префиксов)
+        /// </summary>
+        List<string> GetCurrentDirectoryContentFormatted();
+
+        /// <summary>
+        /// Навигировать в подпапку
+        /// </summary>
+        bool NavigateToFolder(string formattedFolderName);
+
+        /// <summary>
+        /// Вернуться в родительскую папку
+        /// </summary>
+        bool NavigateBack();
+
+        /// <summary>
+        /// Получить полный путь текущей директории
+        /// </summary>
+        string GetCurrentPath();
+
+        /// <summary>
+        /// Очистить навигацию (вернуться в корень диска)
+        /// </summary>
+        void ClearNavigation();
+
+        /// <summary>
+        /// Получить отформатированное имя элемента (без префикса F| или D|)
+        /// </summary>
+        string GetFormattedItemName(string rawItem);
+
+        /// <summary>
+        /// Получить полное имя элемента с префиксом для отправки на сервер
+        /// </summary>
+        string GetRawItemName(string formattedItem, bool isFolder);
+
+        /// <summary>
+        /// Инициализировать навигацию для выбранного диска
+        /// </summary>
+        void SetCurrentDrive(string drive);
+
+        /// <summary>
+        /// Проверить, можно ли вернуться в родительскую папку
+        /// </summary>
+        bool CanNavigateBack();
     }
 
     //public class DiskDriverMock : IDiskDriver
@@ -71,6 +116,9 @@ namespace Task1GUI.Models
         }
 
         private List<string> _disks;
+        private Stack<string> _navigationStack = new Stack<string>();  // Стек для навигации "вверх" по папкам
+        private string _currentPath = string.Empty;                      // Полный текущий путь
+        private string _currentDrive = string.Empty;
 
         public DiskDriver(List<string> disks)
         {
@@ -78,6 +126,16 @@ namespace Task1GUI.Models
         }
 
         public List<string> GetAllDisks() => _disks;
+
+        /// <summary>
+        /// Инициализировать навигацию для выбранного диска
+        /// </summary>
+        public void SetCurrentDrive(string drive)
+        {
+            _currentDrive = drive;
+            _currentPath = drive.EndsWith("\\") ? drive : drive + "\\";
+            _navigationStack.Clear();
+        }
 
         public List<string> GetDirectoryContent(string path)
         {
@@ -142,5 +200,109 @@ namespace Task1GUI.Models
         [DllImport(Constants.dllTask1ClientName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "FreeReply")]
         private static extern void FreeReply(IntPtr reply);
 
+        /// <summary>
+        /// Получить содержимое текущей директории с отформатированными элементами (без префиксов)
+        /// </summary>
+        public List<string> GetCurrentDirectoryContentFormatted()
+        {
+            var rawContent = GetDirectoryContent(GetCurrentPath());
+            return rawContent.Select(item => GetFormattedItemName(item)).ToList();
+        }
+
+        /// <summary>
+        /// Навигировать в подпапку
+        /// </summary>
+        public bool NavigateToFolder(string formattedFolderName)
+        {
+            if (string.IsNullOrEmpty(formattedFolderName))
+                return false;
+
+            var newPath = CombineWindowsPath(_currentPath, formattedFolderName);
+
+            // Проверяем, что папка существует, запросив её содержимое
+            var content = GetDirectoryContent(newPath);
+            // Допускаем пустые папки - если нет ошибки, значит папка существует
+
+            // Сохраняем текущий путь в стек перед переходом
+            _navigationStack.Push(_currentPath);
+            // Обновляем текущий путь
+            _currentPath = newPath;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Вернуться в родительскую папку
+        /// </summary>
+        public bool NavigateBack()
+        {
+            if (_navigationStack.Count == 0)
+                return false;
+
+            // Восстанавливаем предыдущий путь из стека
+            _currentPath = _navigationStack.Pop();
+            return true;
+        }
+
+        /// <summary>
+        /// Проверить, можно ли вернуться в родительскую папку
+        /// </summary>
+        public bool CanNavigateBack()
+        {
+            return _navigationStack.Count > 0;
+        }
+
+        /// <summary>
+        /// Получить полный путь текущей директории
+        /// </summary>
+        public string GetCurrentPath()
+        {
+            return _currentPath;
+        }
+
+        /// <summary>
+        /// Очистить навигацию (вернуться в корень диска)
+        /// </summary>
+        public void ClearNavigation()
+        {
+            _navigationStack.Clear();
+            _currentPath = string.Empty;
+            _currentDrive = string.Empty;
+        }
+
+        /// <summary>
+        /// Получить отформатированное имя элемента (без префикса F| или D|)
+        /// </summary>
+        public string GetFormattedItemName(string rawItem)
+        {
+            if (string.IsNullOrEmpty(rawItem) || rawItem.Length < 3)
+                return rawItem;
+
+            // Проверяем формат "X|Name"
+            if ((rawItem[0] == 'F' || rawItem[0] == 'D') && rawItem[1] == '|')
+            {
+                return rawItem.Substring(2);
+            }
+
+            return rawItem;
+        }
+
+        /// <summary>
+        /// Получить полное имя элемента с префиксом для отправки на сервер
+        /// </summary>
+        public string GetRawItemName(string formattedItem, bool isFolder)
+        {
+            if (string.IsNullOrEmpty(formattedItem))
+                return formattedItem;
+
+            var prefix = isFolder ? "D|" : "F|";
+            return prefix + formattedItem;
+        }
+
+        private static string CombineWindowsPath(string basePath, string childName)
+        {
+            var normalizedBase = basePath.TrimEnd('\\');
+            return normalizedBase + "\\" + childName;
+        }
     }
 }
