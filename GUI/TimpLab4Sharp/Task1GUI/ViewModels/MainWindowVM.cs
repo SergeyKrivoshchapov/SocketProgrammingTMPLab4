@@ -89,17 +89,14 @@ namespace Task1GUI.ViewModels
             get => _selectedDrive;
             set
             {
-                // Если выбран элемент "..." - выполняем навигацию назад
                 if (value == "...")
                 {
                     NavigateBack();
-                    // Восстанавливаем предыдущий диск и обновляем UI сразу
                     Set(ref _selectedDrive, _lastSelectedDrive);
                     OnPropertyChanged(nameof(SelectedDrive));
                     return;
                 }
 
-                // Сохраняем текущий диск перед сменой
                 _lastSelectedDrive = _selectedDrive;
 
                 if (Set(ref _selectedDrive, value))
@@ -265,7 +262,6 @@ namespace Task1GUI.ViewModels
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
 
-                // Создаем список дисков с добавлением "..." в начало для навигации назад
                 var drivesList = new List<string> { "..." };
                 drivesList.AddRange(_diskDriver.GetAllDisks());
 
@@ -341,11 +337,9 @@ namespace Task1GUI.ViewModels
                     return;
                 }
 
-                // Инициализируем навигацию для выбранного диска
                 var driveRoot = GetSelectedDriveRoot();
                 _diskDriver.SetCurrentDrive(driveRoot);
 
-                // Получаем содержимое с отформатированными именами (без префиксов)
                 var rawContent = _diskDriver.GetDirectoryContent(driveRoot);
                 var formattedItems = rawContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
                 Items = new ObservableCollection<string>(formattedItems);
@@ -407,7 +401,6 @@ namespace Task1GUI.ViewModels
 
             try
             {
-                // Получаем исходное содержимое с префиксами для определения типа
                 var currentPath = _diskDriver.GetCurrentPath();
                 var rawContent = _diskDriver.GetDirectoryContent(currentPath);
                 var rawItem = rawContent.FirstOrDefault(item => _diskDriver.GetFormattedItemName(item) == formattedItemName);
@@ -417,13 +410,10 @@ namespace Task1GUI.ViewModels
                     return;
                 }
 
-                // Проверяем, является ли это папкой
                 if (rawItem[0] == 'D')
                 {
-                    // Это папка - переходим в неё
                     if (_diskDriver.NavigateToFolder(formattedItemName))
                     {
-                        // Загружаем содержимое новой папки
                         try
                         {
                             var newPath = _diskDriver.GetCurrentPath();
@@ -435,7 +425,6 @@ namespace Task1GUI.ViewModels
                         catch (Exception ex)
                         {
                             _dialogService.ShowMessageBox($"Ошибка при загрузке содержимого папки: {ex.Message}");
-                            // Возвращаемся назад, если не смогли загрузить содержимое
                             _diskDriver.NavigateBack();
                         }
                     }

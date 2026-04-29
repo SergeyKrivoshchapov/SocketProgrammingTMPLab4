@@ -63,49 +63,6 @@ namespace Task1GUI.Models
         bool CanNavigateBack();
     }
 
-    //public class DiskDriverMock : IDiskDriver
-    //{
-    //    public List<string> GetAllDisks()
-    //    {
-    //        return DriveInfo.GetDrives().Select(d => d.Name).ToList();
-    //    }
-
-    //    public bool IsDiskReady(string diskName, int timeoutMilliseconds = 2000)
-    //    {
-    //        try
-    //        {
-    //            var driveInfo = new DriveInfo(diskName);
-    //            if (driveInfo.DriveType != DriveType.Network)
-    //                return driveInfo.IsReady;
-
-    //            var task = Task.Run(() => driveInfo.IsReady);
-    //            if (task.Wait(timeoutMilliseconds))
-    //                return task.Result;
-    //            else
-    //                return false;
-    //        }
-    //        catch (Exception)
-    //        {
-    //            return false;
-    //        }
-    //    }
-
-    //    public List<string> GetDirectoryContent(string path)
-    //    {
-    //        return Directory.GetDirectories(path).Concat(Directory.GetFiles(path)).ToList();
-    //    }
-
-    //    public bool IsFile(string path)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //    public bool IsFolder(string path)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-    //}
-
     public class DiskDriver : IDiskDriver
     {
         [StructLayout(LayoutKind.Sequential)]
@@ -116,8 +73,8 @@ namespace Task1GUI.Models
         }
 
         private List<string> _disks;
-        private Stack<string> _navigationStack = new Stack<string>();  // Стек для навигации "вверх" по папкам
-        private string _currentPath = string.Empty;                      // Полный текущий путь
+        private Stack<string> _navigationStack = new Stack<string>();
+        private string _currentPath = string.Empty;
         private string _currentDrive = string.Empty;
 
         public DiskDriver(List<string> disks)
@@ -219,13 +176,9 @@ namespace Task1GUI.Models
 
             var newPath = CombineWindowsPath(_currentPath, formattedFolderName);
 
-            // Проверяем, что папка существует, запросив её содержимое
             var content = GetDirectoryContent(newPath);
-            // Допускаем пустые папки - если нет ошибки, значит папка существует
 
-            // Сохраняем текущий путь в стек перед переходом
             _navigationStack.Push(_currentPath);
-            // Обновляем текущий путь
             _currentPath = newPath;
 
             return true;

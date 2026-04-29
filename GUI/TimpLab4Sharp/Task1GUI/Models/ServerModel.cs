@@ -19,32 +19,6 @@ namespace Task1GUI.Models
         bool TransferToClient();
     }
 
-    //public class ServerMockModel : IServerTransferModel
-    //{
-    //    public event EventHandler<string> UpdateLogs;
-
-    //    public bool StartServer()
-    //    {
-    //        UpdateLogs?.Invoke(this, "Сервер запущен");
-
-    //        return true;
-    //    }
-
-    //    public bool StopServer()
-    //    {
-    //        UpdateLogs?.Invoke(this, "Сервер остановлен");
-
-    //        return true;
-    //    }
-
-    //    public bool TransferToClient()
-    //    {
-    //        UpdateLogs?.Invoke(this, "Отправлен список логических устройств");
-
-    //        return true;
-    //    }
-    //}
-
     public class ServerModel : IServerTransferModel
     {
         public event EventHandler<string>? UpdateLogs;
