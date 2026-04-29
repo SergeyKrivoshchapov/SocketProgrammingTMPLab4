@@ -43,7 +43,7 @@ namespace Task2Client.ViewModels
         private readonly RelayCommand _clearCommand;
         private readonly RelayCommand _exitCommand;
 
-        private string _controllerAddress = "127.0.0.1:8080";
+        private string _controllerAddress = "127.0.0.1:9000";
         private string _status = "Не подключено.";
         private string _log = "Ожидание подключения к контроллеру.";
         private bool _isConnected;
