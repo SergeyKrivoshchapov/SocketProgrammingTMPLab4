@@ -66,6 +66,7 @@ namespace Task1GUI.ViewModels
         private string _clientLog = string.Empty;
         private bool _isServerRunning = false;
         private bool _isClientConnected = false;
+        private string _lastSelectedDrive = string.Empty;  // Для сохранения диска при навигации назад
 
         private readonly RelayCommand _toggleServerCommand;
         private readonly RelayCommand _connectCommand;
@@ -88,6 +89,19 @@ namespace Task1GUI.ViewModels
             get => _selectedDrive;
             set
             {
+                // Если выбран элемент "..." - выполняем навигацию назад
+                if (value == "...")
+                {
+                    NavigateBack();
+                    // Восстанавливаем предыдущий диск и обновляем UI сразу
+                    Set(ref _selectedDrive, _lastSelectedDrive);
+                    OnPropertyChanged(nameof(SelectedDrive));
+                    return;
+                }
+
+                // Сохраняем текущий диск перед сменой
+                _lastSelectedDrive = _selectedDrive;
+
                 if (Set(ref _selectedDrive, value))
                 {
                     LoadItems();
@@ -250,7 +264,12 @@ namespace Task1GUI.ViewModels
             {
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
-                Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
+
+                // Создаем список дисков с добавлением "..." в начало для навигации назад
+                var drivesList = new List<string> { "..." };
+                drivesList.AddRange(_diskDriver.GetAllDisks());
+
+                Drives = new ObservableCollection<string>(drivesList);
                 Items = new ObservableCollection<string>();
             }
         }
@@ -311,7 +330,8 @@ namespace Task1GUI.ViewModels
 
         private void LoadItems()
         {
-            if (string.IsNullOrEmpty(SelectedDrive)) return;
+            if (string.IsNullOrEmpty(SelectedDrive) || SelectedDrive == "...") 
+                return;
 
             try
             {
@@ -361,7 +381,7 @@ namespace Task1GUI.ViewModels
 
         private string GetSelectedDriveRoot()
         {
-            if (string.IsNullOrWhiteSpace(SelectedDrive))
+            if (string.IsNullOrWhiteSpace(SelectedDrive) || SelectedDrive == "...")
             {
                 return string.Empty;
             }

@@ -221,5 +221,19 @@ namespace Task1GUI.Views
 
             _viewModel?.ItemDoubleClick(selectedItem);
         }
+
+        private void DrivesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // При выборе "..." закрываем выпадающий список и сбрасываем выбор
+            if (sender is ComboBox comboBox && comboBox.SelectedItem as string == "...")
+            {
+                comboBox.IsDropDownOpen = false;
+                // Задержка для корректного обновления UI
+                Dispatcher.InvokeAsync(() => 
+                {
+                    comboBox.Focus();
+                }, System.Windows.Threading.DispatcherPriority.Render);
+            }
+        }
     }
 }
