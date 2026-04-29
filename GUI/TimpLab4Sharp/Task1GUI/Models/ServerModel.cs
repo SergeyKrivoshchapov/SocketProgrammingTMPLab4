@@ -16,7 +16,7 @@ namespace Task1GUI.Models
 
         bool StopServer();
 
-        (bool status, string drives) TransferToClient();
+        bool TransferToClient();
     }
 
     //public class ServerMockModel : IServerTransferModel
@@ -59,6 +59,9 @@ namespace Task1GUI.Models
         [DllImport(Constants.dllTask1ServerName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "StopServer")]
         private static extern void StopServ();
 
+        [DllImport(Constants.dllTask1ServerName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TransferToClient")]
+        private static extern void TransferToClientExport();
+
         // держим, чтобы GC не собрал делегат
         private DataCallback? _callbackRef;
         private IntPtr _callbackPtr = IntPtr.Zero;
@@ -94,22 +97,16 @@ namespace Task1GUI.Models
             return true;
         }
 
-        public (bool status, string drives) TransferToClient()
+        public bool TransferToClient()
         {
             if (!_started)
             {
-                return (false, string.Empty);
+                return false;
             }
 
-            var drives = string.Join(",", DriveInfo.GetDrives()
-                .Select(d => d.Name)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Select(name => name.EndsWith("\\") ? name.Substring(0, name.Length - 1) : name));
+            TransferToClientExport();
 
-            UpdateLogs?.Invoke(this, $"Отправлен список логических устройств клиенту: {drives}");
-
-            return (true, drives);
-
+            return true;
         }
 
         private void OnNativeLog(IntPtr msgPtr)

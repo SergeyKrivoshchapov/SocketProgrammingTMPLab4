@@ -266,11 +266,11 @@ namespace Task1GUI.ViewModels
 
             if (SelectedItem[0] == 'D')
             {
-                UpdateClientLog(this, string.Join("\n", _diskDriver.GetDirectoryContent(selectedPath)));
+                _diskDriver.GetDirectoryContent(selectedPath);
             }
             else if (SelectedItem[0] == 'F')
             {
-                UpdateClientLog(this, _diskDriver.GetFileContent(selectedPath));
+                _diskDriver.GetFileContent(selectedPath);
             }
         }
 
@@ -281,11 +281,7 @@ namespace Task1GUI.ViewModels
                 return;
             }
 
-            var (status, drives) = _serverTransferModel.TransferToClient();
-            if (status)
-            {
-                UpdateClientLog(this, $"Получен список логических устройств от сервера: {drives}");
-            }
+            _serverTransferModel.TransferToClient();
         }
 
         private void LoadItems()

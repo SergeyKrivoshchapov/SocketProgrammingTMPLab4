@@ -30,10 +30,16 @@ var (
 )
 
 type Server struct {
-	listener net.Listener
-	running  bool
-	stopChan chan struct{}
-	callback C.DataCallback
+	listener  net.Listener
+	running   bool
+	stopChan  chan struct{}
+	callback  C.DataCallback
+	clients   map[net.Conn]*bufio.Writer
+	clientsMu sync.Mutex
+}
+
+func ts() string {
+	return time.Now().Format("02.01.2006 15:04:05")
 }
 
 func (s *Server) log(format string, args ...interface{}) {
@@ -41,11 +47,9 @@ func (s *Server) log(format string, args ...interface{}) {
 		return
 	}
 
-	timestamp := time.Now().Format("02.01.2006 15:04:05")
 	message := fmt.Sprintf(format, args...)
-	fullMsg := fmt.Sprintf("%s %s", timestamp, message)
 
-	cMsg := C.CString(fullMsg)
+	cMsg := C.CString(message)
 	C.invokeCallback(s.callback, cMsg)
 	C.free(unsafe.Pointer(cMsg))
 }
@@ -59,8 +63,9 @@ func (s *Server) Start(port string) error {
 	s.listener = listener
 	s.running = true
 	s.stopChan = make(chan struct{})
+	s.clients = make(map[net.Conn]*bufio.Writer)
 
-	s.log("Сервер включён")
+	s.log("Сервер включён %s", ts())
 
 	go s.acceptLoop()
 	return nil
@@ -78,21 +83,31 @@ func (s *Server) acceptLoop() {
 		}
 
 		remoteAddr := conn.RemoteAddr().String()
-		s.log("Клиент соединился с адреса %s", remoteAddr)
+		s.log("Клиент соединился %s с адреса %s", ts(), remoteAddr)
 		go s.handleClient(conn)
 	}
 }
 
 func (s *Server) handleClient(conn net.Conn) {
-	defer conn.Close()
 	remoteAddr := conn.RemoteAddr().String()
-	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)
+
+	s.clientsMu.Lock()
+	s.clients[conn] = writer
+	s.clientsMu.Unlock()
+
+	defer func() {
+		s.clientsMu.Lock()
+		delete(s.clients, conn)
+		s.clientsMu.Unlock()
+		conn.Close()
+	}()
+
+	reader := bufio.NewReader(conn)
 
 	drives := getLogicalDrives()
 	writer.WriteString("DRIVES:" + strings.Join(drives, ",") + "\n")
 	writer.Flush()
-	s.log("Отправлен список дисков клиенту %s", remoteAddr)
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -102,22 +117,19 @@ func (s *Server) handleClient(conn net.Conn) {
 		}
 
 		line = strings.TrimSpace(line)
-		s.log("Получена команда от %s: %s", remoteAddr, line)
 
 		if line == "QUIT" {
-			s.log("Клиент %s запросил отключение", remoteAddr)
+			s.log("Клиент %s отключился", remoteAddr)
 			return
 		}
 
 		if strings.HasPrefix(line, "LIST_DIR:") {
 			path := strings.TrimPrefix(line, "LIST_DIR:")
-			s.log("Запрос списка директории: %s", path)
+			s.log("Сервер получил %s %s", ts(), path)
 			handleListDir(writer, path, s, remoteAddr)
-		}
-
-		if strings.HasPrefix(line, "GET_FILE:") {
+		} else if strings.HasPrefix(line, "GET_FILE:") {
 			path := strings.TrimPrefix(line, "GET_FILE:")
-			s.log("Запрос файла: %s", path)
+			s.log("Сервер получил %s %s", ts(), path)
 			handleGetFile(writer, path, s, remoteAddr)
 		}
 	}
@@ -162,7 +174,6 @@ func handleGetFile(writer *bufio.Writer, path string, s *Server, clientAddr stri
 	writer.Write(data)
 	writer.WriteString("\nEND\n")
 	writer.Flush()
-	s.log("Файл %s отправлен клиенту %s", path, clientAddr)
 }
 
 func (s *Server) Stop() {
@@ -177,4 +188,18 @@ func (s *Server) Stop() {
 
 func (s *Server) SetCallback(cb C.DataCallback) {
 	s.callback = cb
+}
+
+func (s *Server) TransferToClient() {
+	drives := getLogicalDrives()
+	formattedDrives := strings.Join(drives, "")
+	formattedDrives = strings.ReplaceAll(formattedDrives, ":", ":\\")
+	msg := "PUSH:" + formattedDrives + "\n"
+
+	s.clientsMu.Lock()
+	for _, writer := range s.clients {
+		writer.WriteString(msg)
+		writer.Flush()
+	}
+	s.clientsMu.Unlock()
 }

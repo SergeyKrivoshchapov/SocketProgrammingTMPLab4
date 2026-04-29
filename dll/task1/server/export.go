@@ -45,4 +45,14 @@ func StopServer() {
 	}
 }
 
+//export TransferToClient
+func TransferToClient() {
+	serverMu.Lock()
+	defer serverMu.Unlock()
+
+	if server != nil {
+		server.TransferToClient()
+	}
+}
+
 func main() {}

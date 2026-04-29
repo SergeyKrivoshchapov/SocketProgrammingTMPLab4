@@ -2,10 +2,19 @@ package main
 
 /*
 #include <stdlib.h>
+
 typedef struct {
 	int status;
 	char* msg;
 } Reply;
+
+typedef void (*DataCallback)(char* msg);
+
+static void invokeCallback(DataCallback cb, char* msg) {
+	if (cb != NULL) {
+		cb(msg);
+	}
+}
 */
 import "C"
 import "unsafe"
@@ -39,13 +48,14 @@ func Free(reply *C.Reply) {
 }
 
 //export ConnectToServer
-func ConnectToServer(address *C.char) *C.Reply {
+func ConnectToServer(address *C.char, callback C.DataCallback) *C.Reply {
 	clientMu.Lock()
 	defer clientMu.Unlock()
 	if client != nil {
 		return NewError("client already connected")
 	}
 	c := &FileClient{}
+	c.SetCallback(callback)
 	if err := c.Connect(C.GoString(address)); err != nil {
 		return NewErrorFromErr(err)
 	}
