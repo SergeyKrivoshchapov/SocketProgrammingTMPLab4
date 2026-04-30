@@ -221,17 +221,5 @@ namespace Task1GUI.Views
 
             _viewModel?.ItemDoubleClick(selectedItem);
         }
-
-        private void DrivesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is ComboBox comboBox && comboBox.SelectedItem as string == "...")
-            {
-                comboBox.IsDropDownOpen = false;
-                Dispatcher.InvokeAsync(() => 
-                {
-                    comboBox.Focus();
-                }, System.Windows.Threading.DispatcherPriority.Render);
-            }
-        }
     }
 }

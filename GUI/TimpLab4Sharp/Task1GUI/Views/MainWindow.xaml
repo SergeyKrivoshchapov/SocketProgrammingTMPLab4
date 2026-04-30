@@ -22,11 +22,25 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <GroupBox Grid.Row="0" Header="Выбор диска">
-                <ComboBox x:Name="DrivesComboBox" 
-                          ItemsSource="{Binding Drives}" 
-                          SelectedItem="{Binding SelectedDrive, UpdateSourceTrigger=PropertyChanged}"
-                          SelectionChanged="DrivesComboBox_SelectionChanged"/>
+            <GroupBox Grid.Row="0" Header="Выбор диска и навигация">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ComboBox Grid.Row="0" 
+                              x:Name="DrivesComboBox" 
+                              ItemsSource="{Binding Drives}" 
+                              SelectedItem="{Binding SelectedDrive, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Grid.Row="1" 
+                               Text="{Binding CurrentPath}" 
+                               Foreground="Gray" 
+                               FontSize="11"
+                               Margin="0,3,0,0"
+                               TextTrimming="CharacterEllipsis"/>
+                </Grid>
             </GroupBox>
 
             <ScrollViewer Grid.Row="1">

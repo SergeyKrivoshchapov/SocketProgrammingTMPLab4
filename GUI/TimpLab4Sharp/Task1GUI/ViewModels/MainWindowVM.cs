@@ -24,6 +24,8 @@ namespace Task1GUI.ViewModels
         string SelectedDrive { get; set; }
         // Выбранный элемент (каталог или файл)
         string? SelectedItem { get; set;  }
+        // Текущий полный путь
+        string CurrentPath { get; }
         // Ip-адрес для подключения со стороны клиента
         string IpAddress { get; set; }
         // Вывод сервера
@@ -61,6 +63,7 @@ namespace Task1GUI.ViewModels
     {
         private string _selectedDrive = string.Empty;
         private string? _selectedItem = null;
+        private string _currentPath = string.Empty;
         private string _ipAddress = string.Empty;
         private string _serverLog = string.Empty;
         private string _clientLog = string.Empty;
@@ -89,14 +92,6 @@ namespace Task1GUI.ViewModels
             get => _selectedDrive;
             set
             {
-                if (value == "...")
-                {
-                    NavigateBack();
-                    Set(ref _selectedDrive, _lastSelectedDrive);
-                    OnPropertyChanged(nameof(SelectedDrive));
-                    return;
-                }
-
                 _lastSelectedDrive = _selectedDrive;
 
                 if (Set(ref _selectedDrive, value))
@@ -113,6 +108,14 @@ namespace Task1GUI.ViewModels
                 {
                     RefreshCommands();
                 }
+            }
+        }
+        public string CurrentPath
+        {
+            get => _currentPath;
+            private set
+            {
+                Set(ref _currentPath, value);
             }
         }
         public string IpAddress
@@ -262,11 +265,18 @@ namespace Task1GUI.ViewModels
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
 
-                var drivesList = new List<string> { "..." };
-                drivesList.AddRange(_diskDriver.GetAllDisks());
+                // Добавляем только реальные диски в ComboBox (без "...")
+                Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
 
-                Drives = new ObservableCollection<string>(drivesList);
-                Items = new ObservableCollection<string>();
+                // Выбираем первый диск
+                if (Drives.Count > 0)
+                {
+                    SelectedDrive = Drives[0];
+                }
+                else
+                {
+                    Items = new ObservableCollection<string>();
+                }
             }
         }
 
@@ -283,6 +293,7 @@ namespace Task1GUI.ViewModels
                 Items.Clear();
                 SelectedItem = null;
                 Drives.Clear();
+                CurrentPath = string.Empty;
                 if (_diskDriver != null)
                 {
                     _diskDriver.ClearNavigation();
@@ -326,7 +337,7 @@ namespace Task1GUI.ViewModels
 
         private void LoadItems()
         {
-            if (string.IsNullOrEmpty(SelectedDrive) || SelectedDrive == "...") 
+            if (string.IsNullOrEmpty(SelectedDrive)) 
                 return;
 
             try
@@ -334,15 +345,24 @@ namespace Task1GUI.ViewModels
                 if (_diskDriver == null)
                 {
                     Items = new ObservableCollection<string>();
+                    CurrentPath = string.Empty;
                     return;
                 }
 
                 var driveRoot = GetSelectedDriveRoot();
                 _diskDriver.SetCurrentDrive(driveRoot);
 
+                // Обновляем текущий путь
+                CurrentPath = _diskDriver.GetCurrentPath();
+
                 var rawContent = _diskDriver.GetDirectoryContent(driveRoot);
                 var formattedItems = rawContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
-                Items = new ObservableCollection<string>(formattedItems);
+
+                // Добавляем навигационные кнопки в начало списка
+                var itemsWithNavButtons = new List<string> { ".", ".." };
+                itemsWithNavButtons.AddRange(formattedItems);
+
+                Items = new ObservableCollection<string>(itemsWithNavButtons);
 
                 SelectedItem = null;
             }
@@ -401,6 +421,25 @@ namespace Task1GUI.ViewModels
 
             try
             {
+                // Обработка нажатия на "." (корень диска)
+                if (formattedItemName == ".")
+                {
+                    // Возвращаемся в корень текущего диска
+                    while (_diskDriver.CanNavigateBack())
+                    {
+                        _diskDriver.NavigateBack();
+                    }
+                    LoadItems();
+                    return;
+                }
+
+                // Обработка нажатия на ".." (родительская папка)
+                if (formattedItemName == "..")
+                {
+                    NavigateBack();
+                    return;
+                }
+
                 var currentPath = _diskDriver.GetCurrentPath();
                 var rawContent = _diskDriver.GetDirectoryContent(currentPath);
                 var rawItem = rawContent.FirstOrDefault(item => _diskDriver.GetFormattedItemName(item) == formattedItemName);
@@ -417,9 +456,16 @@ namespace Task1GUI.ViewModels
                         try
                         {
                             var newPath = _diskDriver.GetCurrentPath();
+                            CurrentPath = newPath;
+
                             var newContent = _diskDriver.GetDirectoryContent(newPath);
                             var formattedContent = newContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
-                            Items = new ObservableCollection<string>(formattedContent);
+
+                            // Добавляем навигационные кнопки в начало
+                            var itemsWithNavButtons = new List<string> { ".", ".." };
+                            itemsWithNavButtons.AddRange(formattedContent);
+
+                            Items = new ObservableCollection<string>(itemsWithNavButtons);
                             SelectedItem = null;
                         }
                         catch (Exception ex)
@@ -465,9 +511,17 @@ namespace Task1GUI.ViewModels
             {
                 if (_diskDriver.NavigateBack())
                 {
-                    var content = _diskDriver.GetDirectoryContent(_diskDriver.GetCurrentPath());
+                    var newPath = _diskDriver.GetCurrentPath();
+                    CurrentPath = newPath;
+
+                    var content = _diskDriver.GetDirectoryContent(newPath);
                     var formattedContent = content.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
-                    Items = new ObservableCollection<string>(formattedContent);
+
+                    // Добавляем навигационные кнопки в начало
+                    var itemsWithNavButtons = new List<string> { ".", ".." };
+                    itemsWithNavButtons.AddRange(formattedContent);
+
+                    Items = new ObservableCollection<string>(itemsWithNavButtons);
                     SelectedItem = null;
                 }
             }
