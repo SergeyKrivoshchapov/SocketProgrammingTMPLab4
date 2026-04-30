@@ -265,10 +265,8 @@ namespace Task1GUI.ViewModels
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
 
-                // Добавляем только реальные диски в ComboBox (без "...")
                 Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
 
-                // Выбираем первый диск
                 if (Drives.Count > 0)
                 {
                     SelectedDrive = Drives[0];
@@ -352,13 +350,11 @@ namespace Task1GUI.ViewModels
                 var driveRoot = GetSelectedDriveRoot();
                 _diskDriver.SetCurrentDrive(driveRoot);
 
-                // Обновляем текущий путь
                 CurrentPath = _diskDriver.GetCurrentPath();
 
                 var rawContent = _diskDriver.GetDirectoryContent(driveRoot);
                 var formattedItems = rawContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
 
-                // Добавляем навигационные кнопки в начало списка
                 var itemsWithNavButtons = new List<string> { ".", ".." };
                 itemsWithNavButtons.AddRange(formattedItems);
 
@@ -421,10 +417,8 @@ namespace Task1GUI.ViewModels
 
             try
             {
-                // Обработка нажатия на "." (корень диска)
                 if (formattedItemName == ".")
                 {
-                    // Возвращаемся в корень текущего диска
                     while (_diskDriver.CanNavigateBack())
                     {
                         _diskDriver.NavigateBack();
@@ -433,7 +427,6 @@ namespace Task1GUI.ViewModels
                     return;
                 }
 
-                // Обработка нажатия на ".." (родительская папка)
                 if (formattedItemName == "..")
                 {
                     NavigateBack();
@@ -461,7 +454,6 @@ namespace Task1GUI.ViewModels
                             var newContent = _diskDriver.GetDirectoryContent(newPath);
                             var formattedContent = newContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
 
-                            // Добавляем навигационные кнопки в начало
                             var itemsWithNavButtons = new List<string> { ".", ".." };
                             itemsWithNavButtons.AddRange(formattedContent);
 
@@ -481,7 +473,6 @@ namespace Task1GUI.ViewModels
                 }
                 else if (rawItem[0] == 'F')
                 {
-                    // Это файл - отправляем запрос на сервер
                     var filePath = CombineWindowsPath(currentPath, formattedItemName);
                     var fileContent = _diskDriver.GetFileContent(filePath);
 
@@ -517,7 +508,6 @@ namespace Task1GUI.ViewModels
                     var content = _diskDriver.GetDirectoryContent(newPath);
                     var formattedContent = content.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
 
-                    // Добавляем навигационные кнопки в начало
                     var itemsWithNavButtons = new List<string> { ".", ".." };
                     itemsWithNavButtons.AddRange(formattedContent);
 
