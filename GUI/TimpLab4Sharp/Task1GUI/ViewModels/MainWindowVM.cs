@@ -18,14 +18,10 @@ namespace Task1GUI.ViewModels
     {
         // Список дисков
         ObservableCollection<string> Drives { get; }
-        // Каталоги и файлы в выбранном диске
-        ObservableCollection<string> Items { get; }
-        // Выбранный диск
-        string SelectedDrive { get; set; }
-        // Выбранный элемент (каталог или файл)
-        string? SelectedItem { get; set;  }
-        // Текущий полный путь
-        string CurrentPath { get; }
+        // История посещенных путей + диски
+        ObservableCollection<string> DrivesHistory { get; }
+        // Выбранный элемент в истории
+        string SelectedDriveHistoryItem { get; set; }
         // Ip-адрес для подключения со стороны клиента
         string IpAddress { get; set; }
         // Вывод сервера
@@ -62,6 +58,7 @@ namespace Task1GUI.ViewModels
     public class MainWindowVM : BaseViewModel, IMainWindowVM
     {
         private string _selectedDrive = string.Empty;
+        private string _selectedDriveHistoryItem = string.Empty;
         private string? _selectedItem = null;
         private string _currentPath = string.Empty;
         private string _ipAddress = string.Empty;
@@ -70,6 +67,7 @@ namespace Task1GUI.ViewModels
         private bool _isServerRunning = false;
         private bool _isClientConnected = false;
         private string _lastSelectedDrive = string.Empty;  // Для сохранения диска при навигации назад
+        private bool _isNavigating = false;
 
         private readonly RelayCommand _toggleServerCommand;
         private readonly RelayCommand _connectCommand;
@@ -84,10 +82,28 @@ namespace Task1GUI.ViewModels
                 field = value;
                 OnPropertyChanged();
             } }
+        public ObservableCollection<string> DrivesHistory { get; private set
+            {
+                field = value;
+                OnPropertyChanged();
+            } }
         public ObservableCollection<string> Items { get; private set {
                 field = value;
                 OnPropertyChanged();
             } }
+        public string SelectedDriveHistoryItem {
+            get => _selectedDriveHistoryItem;
+            set
+            {
+                if (Set(ref _selectedDriveHistoryItem, value))
+                {
+                    if (!string.IsNullOrEmpty(value) && value != CurrentPath && !_isNavigating)
+                    {
+                        CurrentPath = value;
+                    }
+                }
+            }
+        }
         public string SelectedDrive {
             get => _selectedDrive;
             set
@@ -96,7 +112,10 @@ namespace Task1GUI.ViewModels
 
                 if (Set(ref _selectedDrive, value))
                 {
-                    LoadItems();
+                    if (!_isNavigating)
+                    {
+                        LoadItems();
+                    }
                 }
             }
         }
@@ -113,9 +132,15 @@ namespace Task1GUI.ViewModels
         public string CurrentPath
         {
             get => _currentPath;
-            private set
+            set
             {
-                Set(ref _currentPath, value);
+                if (Set(ref _currentPath, value))
+                {
+                    if (!string.IsNullOrEmpty(value) && !_isNavigating)
+                    {
+                         SelectedDrive = value;
+                    }
+                }
             }
         }
         public string IpAddress
@@ -200,6 +225,7 @@ namespace Task1GUI.ViewModels
             _navigateBackCommand = new RelayCommand(_ => NavigateBack(), CanNavigateBack);
 
             Drives = new ObservableCollection<string>();
+            DrivesHistory = new ObservableCollection<string>();
             Items = new ObservableCollection<string>();
 
             _serverTransferModel.UpdateLogs += UpdateServerLog;
@@ -265,11 +291,13 @@ namespace Task1GUI.ViewModels
                 IsClientConnected = true;
                 _diskDriver = _diskDriverService.GetDiskDriver(disks);
 
-                Drives = new ObservableCollection<string>(_diskDriver.GetAllDisks());
+                var allDisks = _diskDriver.GetAllDisks().Select(d => d.EndsWith("\\") ? d : d + "\\").ToList();
+                Drives = new ObservableCollection<string>(allDisks);
+                DrivesHistory = new ObservableCollection<string>(allDisks);
 
-                if (Drives.Count > 0)
+                if (DrivesHistory.Count > 0)
                 {
-                    SelectedDrive = Drives[0];
+                    CurrentPath = DrivesHistory[0];
                 }
                 else
                 {
@@ -291,7 +319,14 @@ namespace Task1GUI.ViewModels
                 Items.Clear();
                 SelectedItem = null;
                 Drives.Clear();
+                DrivesHistory.Clear();
+                
+                _isNavigating = true;
                 CurrentPath = string.Empty;
+                SelectedDriveHistoryItem = string.Empty;
+                SelectedDrive = string.Empty;
+                _isNavigating = false;
+                
                 if (_diskDriver != null)
                 {
                     _diskDriver.ClearNavigation();
@@ -350,7 +385,14 @@ namespace Task1GUI.ViewModels
                 var driveRoot = GetSelectedDriveRoot();
                 _diskDriver.SetCurrentDrive(driveRoot);
 
-                CurrentPath = _diskDriver.GetCurrentPath();
+                var drivePath = _diskDriver.GetCurrentPath();
+                if (!drivePath.EndsWith("\\")) drivePath += "\\";
+                CurrentPath = drivePath;
+                if (!DrivesHistory.Contains(drivePath))
+                {
+                    DrivesHistory.Add(drivePath);
+                }
+                SelectedDriveHistoryItem = drivePath;
 
                 var rawContent = _diskDriver.GetDirectoryContent(driveRoot);
                 var formattedItems = rawContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
@@ -423,7 +465,20 @@ namespace Task1GUI.ViewModels
                     {
                         _diskDriver.NavigateBack();
                     }
-                    LoadItems();
+                    var newPathDot = _diskDriver.GetCurrentPath();
+                    if (!newPathDot.EndsWith("\\")) newPathDot += "\\";
+                    
+                    _isNavigating = true;
+                    CurrentPath = newPathDot;
+                    SelectedDrive = newPathDot;
+                    if (!DrivesHistory.Contains(newPathDot))
+                    {
+                        DrivesHistory.Add(newPathDot);
+                    }
+                    SelectedDriveHistoryItem = newPathDot;
+                    _isNavigating = false;
+                    
+                    RefreshContent(newPathDot);
                     return;
                 }
 
@@ -449,16 +504,19 @@ namespace Task1GUI.ViewModels
                         try
                         {
                             var newPath = _diskDriver.GetCurrentPath();
+                            if (!newPath.EndsWith("\\")) newPath += "\\";
+                            
+                            _isNavigating = true;
                             CurrentPath = newPath;
+                            SelectedDrive = newPath;
+                            if (!DrivesHistory.Contains(newPath))
+                            {
+                                DrivesHistory.Add(newPath);
+                            }
+                            SelectedDriveHistoryItem = newPath;
+                            _isNavigating = false;
 
-                            var newContent = _diskDriver.GetDirectoryContent(newPath);
-                            var formattedContent = newContent.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
-
-                            var itemsWithNavButtons = new List<string> { ".", ".." };
-                            itemsWithNavButtons.AddRange(formattedContent);
-
-                            Items = new ObservableCollection<string>(itemsWithNavButtons);
-                            SelectedItem = null;
+                            RefreshContent(newPath);
                         }
                         catch (Exception ex)
                         {
@@ -503,22 +561,39 @@ namespace Task1GUI.ViewModels
                 if (_diskDriver.NavigateBack())
                 {
                     var newPath = _diskDriver.GetCurrentPath();
+                    if (!newPath.EndsWith("\\")) newPath += "\\";
+                    
+                    _isNavigating = true;
                     CurrentPath = newPath;
+                    SelectedDrive = newPath;
+                    if (!DrivesHistory.Contains(newPath))
+                    {
+                        DrivesHistory.Add(newPath);
+                    }
+                    SelectedDriveHistoryItem = newPath;
+                    _isNavigating = false;
 
-                    var content = _diskDriver.GetDirectoryContent(newPath);
-                    var formattedContent = content.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
-
-                    var itemsWithNavButtons = new List<string> { ".", ".." };
-                    itemsWithNavButtons.AddRange(formattedContent);
-
-                    Items = new ObservableCollection<string>(itemsWithNavButtons);
-                    SelectedItem = null;
+                    RefreshContent(newPath);
                 }
             }
             catch (Exception ex)
             {
                 _dialogService.ShowMessageBox($"Ошибка при навигации: {ex.Message}");
             }
+        }
+        
+        private void RefreshContent(string path)
+        {
+            if (_diskDriver == null) return;
+            
+            var content = _diskDriver.GetDirectoryContent(path);
+            var formattedContent = content.Select(item => _diskDriver.GetFormattedItemName(item)).ToList();
+
+            var itemsWithNavButtons = new List<string> { ".", ".." };
+            itemsWithNavButtons.AddRange(formattedContent);
+
+            Items = new ObservableCollection<string>(itemsWithNavButtons);
+            SelectedItem = null;
         }
     }
 }
