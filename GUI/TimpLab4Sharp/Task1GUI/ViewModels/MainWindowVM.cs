@@ -346,15 +346,37 @@ namespace Task1GUI.ViewModels
                 return;
             }
 
-            var selectedPath = CombineWindowsPath(GetSelectedDriveRoot(), SelectedItem.Substring(2));
+            try
+            {
+                var currentPath = _diskDriver.GetCurrentPath();
+                var rawContent = _diskDriver.GetDirectoryContent(currentPath);
+                var rawItem = rawContent.FirstOrDefault(item =>
+                    _diskDriver.GetFormattedItemName(item) == SelectedItem);
 
-            if (SelectedItem[0] == 'D')
-            {
-                _diskDriver.GetDirectoryContent(selectedPath);
+                if (string.IsNullOrEmpty(rawItem))
+                {
+                    return;
+                }
+
+                var selectedPath = CombineWindowsPath(currentPath, SelectedItem);
+
+                if (rawItem[0] == 'D')
+                {
+                    var content = _diskDriver.GetDirectoryContent(selectedPath);
+                    ClientLog += $"Содержимое папки передано на сервер: {SelectedItem}\n";
+                }
+                else if (rawItem[0] == 'F')
+                {
+                    var fileContent = _diskDriver.GetFileContent(selectedPath);
+                    if (!string.IsNullOrEmpty(fileContent))
+                    {
+                        ClientLog += $"Файл передан на сервер: {SelectedItem}\n";
+                    }
+                }
             }
-            else if (SelectedItem[0] == 'F')
+            catch (Exception ex)
             {
-                _diskDriver.GetFileContent(selectedPath);
+                ClientLog += $"Ошибка при передаче на сервер: {ex.Message}\n";
             }
         }
 
